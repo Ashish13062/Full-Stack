@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Drawing Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .svg-canvas {
+            background-color: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 1rem;
+            cursor: crosshair;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            touch-action: none; /* Prevents mobile scrolling */
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-xl p-6 flex flex-col items-center">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Interactive Drawing Tool</h1>
+        <p class="text-center text-gray-600 mb-6">Select a shape and draw on the canvas below.</p>
+        
+        <div class="flex flex-wrap justify-center space-x-2 sm:space-x-4 mb-6">
+            <button id="circle-btn" class="shape-btn px-4 py-2 rounded-full font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-500 text-white">Circle</button>
+            <button id="rect-btn" class="shape-btn px-4 py-2 rounded-full font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-gray-800">Rectangle</button>
+            <button id="line-btn" class="shape-btn px-4 py-2 rounded-full font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-200 text-gray-800">Line</button>
+            <button id="clear-btn" class="px-4 py-2 rounded-full font-medium text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 bg-red-500 text-white">Clear All</button>
+        </div>
+
+        <svg id="drawing-canvas" class="svg-canvas w-full h-[500px]"></svg>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawing-canvas');
+        const shapeButtons = document.querySelectorAll('.shape-btn');
+        const clearButton = document.getElementById('clear-btn');
+        
+        let isDrawing = false;
+        let startX, startY;
+        let currentShape = null;
+        let selectedShape = 'circle';
+        
+        // Function to update the active shape button styling
+        function updateActiveButton() {
+            shapeButtons.forEach(btn => {
+                if (btn.id === `${selectedShape}-btn`) {
+                    btn.classList.add('bg-blue-500', 'text-white');
+                    btn.classList.remove('bg-gray-200', 'text-gray-800');
+                } else {
+                    btn.classList.remove('bg-blue-500', 'text-white');
+                    btn.classList.add('bg-gray-200', 'text-gray-800');
+                }
+            });
+        }
+        updateActiveButton();
+
+        // Event listeners for shape selection buttons
+        shapeButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                selectedShape = e.target.id.split('-')[0];
+                updateActiveButton();
+            });
+        });
+
+        // Event listener for the clear button
+        clearButton.addEventListener('click', () => {
+            canvas.innerHTML = '';
+        });
+
+        // Mouse events for drawing
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+
+            // Create the initial shape based on the selection
+            if (selectedShape === 'circle') {
+                currentShape = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                currentShape.setAttribute('cx', startX);
+                currentShape.setAttribute('cy', startY);
+                currentShape.setAttribute('r', '0');
+                currentShape.setAttribute('fill', 'rgba(59, 130, 246, 0.5)');
+                currentShape.setAttribute('stroke', '#2563eb');
+                currentShape.setAttribute('stroke-width', '2');
+            } else if (selectedShape === 'rect') {
+                currentShape = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                currentShape.setAttribute('x', startX);
+                currentShape.setAttribute('y', startY);
+                currentShape.setAttribute('width', '0');
+                currentShape.setAttribute('height', '0');
+                currentShape.setAttribute('fill', 'rgba(59, 130, 246, 0.5)');
+                currentShape.setAttribute('stroke', '#2563eb');
+                currentShape.setAttribute('stroke-width', '2');
+            } else if (selectedShape === 'line') {
+                currentShape = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                currentShape.setAttribute('x1', startX);
+                currentShape.setAttribute('y1', startY);
+                currentShape.setAttribute('x2', startX);
+                currentShape.setAttribute('y2', startY);
+                currentShape.setAttribute('stroke', '#2563eb');
+                currentShape.setAttribute('stroke-width', '2');
+            }
+
+            if (currentShape) {
+                canvas.appendChild(currentShape);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+
+            if (selectedShape === 'circle') {
+                const radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
+                currentShape.setAttribute('r', radius);
+            } else if (selectedShape === 'rect') {
+                const x = Math.min(currentX, startX);
+                const y = Math.min(currentY, startY);
+                const width = Math.abs(currentX - startX);
+                const height = Math.abs(currentY - startY);
+                currentShape.setAttribute('x', x);
+                currentShape.setAttribute('y', y);
+                currentShape.setAttribute('width', width);
+                currentShape.setAttribute('height', height);
+            } else if (selectedShape === 'line') {
+                currentShape.setAttribute('x2', currentX);
+                currentShape.setAttribute('y2', currentY);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+            currentShape = null;
+        });
+
+        // Handle touch events for mobile
+        canvas.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            e.clientX = touch.clientX;
+            e.clientY = touch.clientY;
+            canvas.dispatchEvent(new MouseEvent('mousedown', e));
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            e.clientX = touch.clientX;
+            e.clientY = touch.clientY;
+            canvas.dispatchEvent(new MouseEvent('mousemove', e));
+        });
+
+        canvas.addEventListener('touchend', () => {
+            canvas.dispatchEvent(new MouseEvent('mouseup'));
+        });
+    </script>
+</body>
+</html>
